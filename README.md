@@ -33,3 +33,20 @@ Before running the application, ensure you have:
    git clone https://github.com/your-username/solvency2-ai-agent.git
    cd solvency2-ai-agent
    
+2. **Install dependencies**:
+  ```Bash
+  pip install -r requirements.txt
+
+3. **Run the application**:
+  ```Bash
+  streamlit run App.py
+
+## 🖥️ Usage Guide
+- **Enter API Key**: Paste your Gemini API Key into the sidebar.
+- **Define Assets**: Enter ticker symbols (e.g., SPY for Target, GLD for Benchmark).
+- **Select Horizon**: Choose the historical period (1y, 2y, or 5y).
+- **Run Analytics**: Click the button to trigger data fetching and AI report generation.
+- **Caching**: If you hit API limits, the app will display a warning. Results are cached for 1 hour once successfully loaded.
+
+## ⚖️ Disclaimer
+This software is for educational and research purposes only. It does not constitute financial advice. The risk metrics and AI-generated insights are based on historical data and probabilistic models which do not guarantee future results. Users should consult with a certified actuary or financial advisor for regulatory compliance.  
