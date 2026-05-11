@@ -34,11 +34,11 @@ Before running the application, ensure you have:
    cd solvency2-ai-agent
    
 2. **Install dependencies**:
-  ```Bash
+  ```bash
   pip install -r requirements.txt
 
 3. **Run the application**:
-  ```Bash
+  ```bash
   streamlit run App.py
 
 ## 🖥️ Usage Guide
