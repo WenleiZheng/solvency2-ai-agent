@@ -71,10 +71,7 @@ def get_ai_insight(target_m, bench_m, key):
         """
         
         # Try the most efficient model for 2026
-        response = client.models.generate_content(
-            model="gemini-2.0-flash", 
-            contents=prompt
-        )
+        response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
         return response.text
     except Exception as e:
         # Return the error message so we can diagnose
