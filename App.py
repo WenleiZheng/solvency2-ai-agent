@@ -5,7 +5,6 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from google import genai
-import os
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Solvency II AI Risk Agent", layout="wide")
@@ -52,30 +51,44 @@ def get_metrics(ticker, period):
         st.error(f"Data Fetch Error ({ticker}): {str(e)}")
         return None
 
-# --- CORE LOGIC: AI AGENT ---
-def get_ai_insight(target_m, bench_m, key):
+# --- CORE LOGIC: AI AGENT (REPLACED WITH CACHED VERSION) ---
+@st.cache_data(ttl=3600)
+def get_ai_insight(t_ticker, t_vol, t_var, b_ticker, b_vol, b_var, key):
+    """
+    Analyzes risk data using Gemini 2.0. 
+    Results are cached to prevent '429 Resource Exhausted' errors.
+    """
     try:
-        # Initialize the GenAI client
         client = genai.Client(api_key=key)
         
         prompt = f"""
         You are a Solvency II Risk Expert. 
         Analyze the following data:
-        Target ({target_m['ticker']}): Volatility {target_m['vol']:.2%}, VaR (95%) {target_m['var']:.2%}
-        Benchmark ({bench_m['ticker']}): Volatility {bench_m['vol']:.2%}, VaR (95%) {bench_m['var']:.2%}
+        Target ({t_ticker}): Volatility {t_vol:.2%}, VaR (95%) {t_var:.2%}
+        Benchmark ({b_ticker}): Volatility {b_vol:.2%}, VaR (95%) {b_var:.2%}
         
         Task:
         1. Compare profiles under Solvency II framework.
         2. Suggest Stress Test scenarios.
         3. 50-word executive summary for CRO.
+        Write in professional English.
         """
         
-        # Try the most efficient model for 2026
-        response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+        # Using 2.0-flash which was confirmed to exist in your environment
+        response = client.models.generate_content(
+            model="gemini-2.0-flash", 
+            contents=prompt
+        )
         return response.text
+
     except Exception as e:
-        # Return the error message so we can diagnose
-        return f"⚠️ AI Error: {str(e)}"
+        error_msg = str(e)
+        if "429" in error_msg:
+            return "⚠️ **QUOTA EXCEEDED**: You are using a Free Tier API Key. Please wait 60 seconds. Caching is enabled, so once loaded, this won't happen again for these assets."
+        elif "404" in error_msg:
+            return "⚠️ **MODEL NOT FOUND**: Gemini 2.0-flash is currently unavailable in your region via API."
+        else:
+            return f"⚠️ **AI ERROR**: {error_msg}"
 
 # --- EXECUTION ---
 if st.sidebar.button("Run Analytics") and api_key:
@@ -110,20 +123,30 @@ if st.sidebar.button("Run Analytics") and api_key:
             fig.add_trace(go.Bar(name='VaR (95%)', x=[target_ticker, benchmark_ticker], y=[abs(t_metrics['var']), abs(b_metrics['var'])]), row=2, col=1)
             
             fig.update_layout(height=700, template="plotly_white")
-            # FIXED: Updated for Streamlit 2026 syntax
+            # Using 2026 Streamlit syntax
             st.plotly_chart(fig, width="stretch")
 
-            # 4. AI Insight Section
+            # 4. AI Insight Section (MODIFIED TO PASS INDIVIDUAL VALUES)
             st.subheader("🤖 AI Regulatory Insight")
-            ai_report = get_ai_insight(t_metrics, b_metrics, api_key)
             
-            # If the report starts with ⚠️, it means an error occurred
+            ai_report = get_ai_insight(
+                t_metrics['ticker'], 
+                t_metrics['vol'], 
+                t_metrics['var'],
+                b_metrics['ticker'], 
+                b_metrics['vol'], 
+                b_metrics['var'],
+                api_key
+            )
+            
             if "⚠️" in ai_report:
-                st.error(ai_report)
+                st.warning(ai_report)
             else:
                 st.info(ai_report)
         else:
             st.error("Data source unavailable. Please check tickers or API limits.")
 else:
     if not api_key:
-        st.warning("Please enter your Gemini API Key to unlock AI insights.")
+        st.warning("Please enter your Gemini API Key in the sidebar to unlock AI insights.")
+    else:
+        st.info("Click 'Run Analytics' to generate the risk report.")
